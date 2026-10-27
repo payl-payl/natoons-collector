@@ -255,9 +255,9 @@ COLLECTIONS.forEach(c=>c.animals.forEach(a=>{ a.year=c.year; a.key=c.year+'-'+a.
 const byKey = k => ANIMALS.find(a=>a.key===k);
 
 /* QR-коды, уже прочитанные с твоих вкладышей (код → игрушка). Остальные привязываются при первом сканировании. */
-const PRESET_QR = {DV019:'2020-12', DV282:'2020-8', DV138:'2020-13', DV020:'2020-14'};
+const PRESET_QR = {DV019:'2020-12', DV282:'2020-8', DV138:'2020-13', DV020:'2020-14', DV109:'2020-9', DV014A:'2020-6'};
 /* из ссылки вида https://qr.natoons.com/DV019 берём только DV019 */
-function qrKey(text){ const m=/DV\d{3,4}/i.exec(text||''); return m?m[0].toUpperCase():String(text||'').trim(); }
+function qrKey(text){ const m=/DV\d{3,4}[A-Z]?/i.exec(text||''); return m?m[0].toUpperCase():String(text||'').trim(); }
 
 /* ===== Хранилище ===== */
 const KEY='natoons_save_v2', OLDKEY='natoons_save_v1', UKEY='natoons_userrefs_v1';
