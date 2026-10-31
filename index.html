@@ -178,6 +178,7 @@ details summary{cursor:pointer;font-weight:800}
 @media(min-width:620px){.stage{height:min(92vh,880px);border-radius:30px;box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}}
 #stageBg{position:absolute;inset:0;z-index:0}
 #stageBg svg{width:100%;height:100%;display:block}
+#stageFg{position:absolute;inset:0;z-index:1;pointer-events:none}#stageFg svg{width:100%;height:100%;display:block}
 #view{position:absolute;inset:0;z-index:1;touch-action:none;cursor:grab}
 #view:active{cursor:grabbing}
 #view canvas{display:block;width:100%;height:100%}
@@ -436,6 +437,7 @@ form.shake{animation:shake .45s}
 <div id="modal"><div class="stage">
   <div id="stageBg"></div>
   <div id="view"></div>
+  <div id="stageFg"></div>
   <div class="mtop">
     <div class="mhead"><span class="mnum" id="mNum"></span><h2 id="mTitle"></h2></div>
     <button class="iconbtn" id="mClose" aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button>
@@ -728,63 +730,70 @@ function envOf(a){
 /* цвета сцены: светлая и тёмная (вечерняя) тема */
 const SCN={
   light:{
-    forest:{sky:['#a6dbe9','#e3f2cf'],far:'#9ccaa0',mid:'#69a877',near:'#3a8050',ground:'#5aa04a',fog:'#b4d8a2',hemi:[0xffffff,0x9fc88f,1.0],sun:[0xfff3d6,.9]},
-    branch:{sky:['#b9e3d3','#e9f4c9'],far:'#9ccaa0',mid:'#6aa877',near:'#3a8050',trunk:'#6b5a3e',hemi:[0xffffff,0x9fc88f,1.05],sun:[0xfff3d6,.85]},
-    water:{sky:['#8fd0ec','#f4efd3'],far:'#ead9a0',mid:'#dcc588',near:'#cdb272',ground:'#e3cf8e',fog:'#ecdfb0',water:'#3fa3c6',hemi:[0xffffff,0xe0cf9a,1.0],sun:[0xfff3d6,.95]},
-    sand:{sky:['#9bd3ea','#f4ecd0'],far:'#ead9a0',mid:'#dcc588',near:'#cdb272',ground:'#dcc588',fog:'#ecdfb0',hemi:[0xffffff,0xe0cf9a,1.0],sun:[0xfff3d6,.95]}
+    forest:{sky:['#8fd3dc','#d9efc4'],far:'#8fc6a0',mid:'#4f9b64',near:'#1f6a3c',trunk:'#5b4630',ground:'#4f9a45',fog:'#a9d3a0',leaf:'#1a6b36',leaf2:'#2f9a4c',hemi:[0xffffff,0x8fc080,1.05],sun:[0xfff1c9,.95]},
+    water:{sky:['#7cc8ee','#fbf0cf'],far:'#e6d49c',mid:'#d4bb7c',near:'#2c7d4c',trunk:'#7a5a38',ground:'#e4cf90',fog:'#efe2b6',water:'#37b4d0',leaf:'#1a6b36',leaf2:'#38a85a',hemi:[0xffffff,0xe0cf9a,1.05],sun:[0xfff1c9,1]}
   },
   dark:{
-    forest:{sky:['#07152a','#1b3a38'],far:'#17372b',mid:'#10281f',near:'#0a1c15',ground:'#1f4a2c',fog:'#16362a',hemi:[0x9fb8d8,0x1a3a28,.8],sun:[0xaec8ff,.55]},
-    branch:{sky:['#07182a','#12332a'],far:'#17372b',mid:'#10281f',near:'#0a1c15',trunk:'#2c241a',hemi:[0x9fb8d8,0x1a3a28,.85],sun:[0xaec8ff,.55]},
-    water:{sky:['#091428','#2c3652'],far:'#4a4538',mid:'#3d392d',near:'#332f26',ground:'#554d3a',fog:'#3a3a3c',water:'#1c5877',hemi:[0x9fb0d8,0x4a4332,.8],sun:[0xaec8ff,.6]},
-    sand:{sky:['#091428','#2c3652'],far:'#4a4538',mid:'#3d392d',near:'#332f26',ground:'#554d3a',fog:'#3a3a3c',hemi:[0x9fb0d8,0x4a4332,.8],sun:[0xaec8ff,.6]}
+    forest:{sky:['#06152a','#17372f'],far:'#17402f',mid:'#0f2c20',near:'#07170f',trunk:'#1d1710',ground:'#1b4429',fog:'#143427',leaf:'#0a2a18',leaf2:'#14452a',hemi:[0x9fb8d8,0x1a3a28,.85],sun:[0xaec8ff,.6]},
+    water:{sky:['#081329','#2b3552'],far:'#4a4538',mid:'#3a362c',near:'#12331f',trunk:'#2c2216',ground:'#554d3a',fog:'#3a3b40',water:'#1a5a78',leaf:'#0a2a18',leaf2:'#14452a',hemi:[0x9fb0d8,0x4a4332,.85],sun:[0xaec8ff,.65]}
   }
 };
+SCN.light.branch=SCN.light.forest; SCN.dark.branch=SCN.dark.forest;
+SCN.light.sand=SCN.light.water; SCN.dark.sand=SCN.dark.water;
 function rng(seed){ return ()=>{ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
-/* ---- задний план (векторный): небо, лес, дюны ---- */
-function backdrop(env,P){
-  const R=rng(7+env.length*13), f=n=>n.toFixed(1);
-  const defs=`<defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.sky[0]}"/><stop offset="${env==='branch'?1:.45}" stop-color="${P.sky[1]}"/></linearGradient>
-    <radialGradient id="gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity="${curTheme()==='dark'?.18:.7}"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>`;
-  let s=`<rect width="400" height="800" fill="url(#sk)"/>`;
-  const dark=curTheme()==='dark';
-  if(env==='forest'||env==='branch'){
-    s+=`<circle cx="${dark?310:90}" cy="${dark?110:100}" r="${dark?44:90}" fill="${dark?'#e9f0ff':'url(#gl)'}" opacity="${dark?.9:1}"/>`;
-    if(dark) s+=`<circle cx="322" cy="102" r="40" fill="${P.sky[0]}"/>`;
-    const layer=(col,y,n,rmin,rmax,trunk)=>{
-      let o='';
-      for(let i=0;i<n;i++){
-        const x=R()*440-20, r=rmin+R()*(rmax-rmin);
-        if(trunk) o+=`<rect x="${f(x-r*.09)}" y="${f(y-r*.2)}" width="${f(r*.18)}" height="${f(900-y)}" fill="${trunk}"/>`;
-        o+=`<ellipse cx="${f(x)}" cy="${f(y-r*.35)}" rx="${f(r*.85)}" ry="${f(r)}" fill="${col}"/>`;
-        o+=`<ellipse cx="${f(x+r*.4)}" cy="${f(y-r*.05)}" rx="${f(r*.6)}" ry="${f(r*.7)}" fill="${col}"/>`;
-      }
-      return o;
-    };
-    if(env==='forest'){
-      s+=layer(P.far,300,9,40,70)+layer(P.mid,325,8,45,80,P.near);
-      s+=`<rect y="318" width="400" height="500" fill="${P.ground}"/>`;
-    } else {
-      /* ветка: сплошной лес до самого низа, три слоя глубины */
-      s+=layer(P.far,260,10,46,80,P.far)+layer(P.mid,420,9,52,92,P.trunk);
-      for(let i=0;i<4;i++){ const x=R()*400; s+=`<rect x="${f(x)}" y="0" width="${f(14+R()*18)}" height="800" fill="${P.trunk}" opacity=".55"/>`; }
-      s+=layer(P.near,150,6,60,100);
-      if(!dark) for(let i=0;i<4;i++){ const x=40+R()*320; s+=`<polygon points="${f(x)},0 ${f(x+40)},0 ${f(x+150)},800 ${f(x-20)},800" fill="#fff" opacity=".07"/>`; }
-    }
-  } else {
-    /* небо, облака, дюны */
-    s+=`<circle cx="${dark?300:95}" cy="${dark?105:96}" r="${dark?40:90}" fill="${dark?'#e9f0ff':'url(#gl)'}"/>`;
-    if(dark) s+=`<circle cx="312" cy="98" r="36" fill="${P.sky[0]}"/>`;
-    for(let i=0;i<5;i++){ const x=R()*380, y=70+R()*160, w=50+R()*60; s+=`<g opacity="${dark?.14:.8}" fill="#fff"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(w)}" ry="${f(w*.2)}"/><ellipse cx="${f(x+w*.3)}" cy="${f(y-w*.12)}" rx="${f(w*.5)}" ry="${f(w*.2)}"/></g>`; }
-    s+=`<path d="M0 300 Q70 262 150 292 T300 285 T400 296 V420 H0Z" fill="${P.far}"/>`;
-    s+=`<path d="M0 322 Q90 290 190 318 T400 312 V440 H0Z" fill="${P.mid}"/>`;
-    s+=`<rect y="330" width="400" height="500" fill="${P.ground}"/>`;
+/* ---- векторный фон: слои с воздушной дымкой + листья на переднем плане ---- */
+function frond(x,y,rot,len,col,col2){
+  let s=`<g transform="translate(${x} ${y}) rotate(${rot})"><path d="M0 0Q${len*.5} ${-len*.18} ${len} ${len*.04}" stroke="${col}" stroke-width="3" fill="none"/>`;
+  for(let i=1;i<=11;i++){
+    const t=i/12, px=len*t, py=-len*.18*Math.sin(t*Math.PI*.9)+len*.04*t, L=len*.34*(1-t*.55);
+    [-1,1].forEach(sd=>{ s+=`<ellipse cx="${(px+L*.2).toFixed(1)}" cy="${(py+sd*L*.5).toFixed(1)}" rx="${L.toFixed(1)}" ry="${(L*.2).toFixed(1)}" transform="rotate(${sd*(48-t*14)} ${px.toFixed(1)} ${py.toFixed(1)})" fill="${i%2?col:col2}"/>`; });
   }
-  return `<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${defs}${s}</svg>`;
+  return s+'</g>';
+}
+function backdrop(env,P){
+  const R=rng(11+env.length*17), f=n=>n.toFixed(1), dark=curTheme()==='dark';
+  const jungle=(env==='forest'||env==='branch');
+  const H=320;                                           // линия горизонта
+  let s=`<defs>
+   <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.sky[0]}"/><stop offset="${jungle?.55:.42}" stop-color="${P.sky[1]}"/></linearGradient>
+   <linearGradient id="hz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.fog}" stop-opacity="0"/><stop offset="1" stop-color="${P.fog}" stop-opacity="${dark?.75:.9}"/></linearGradient>
+   <radialGradient id="gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity="${dark?.15:.85}"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+   <rect width="400" height="800" fill="url(#sk)"/>`;
+  const blob=(x,y,r,col,o)=>`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(r*1.15)}" ry="${f(r)}" fill="${col}" ${o?`opacity="${o}"`:''}/><ellipse cx="${f(x+r*.6)}" cy="${f(y+r*.25)}" rx="${f(r*.8)}" ry="${f(r*.7)}" fill="${col}" ${o?`opacity="${o}"`:''}/>`;
+  if(jungle){
+    s+=`<circle cx="${dark?320:80}" cy="${dark?90:70}" r="${dark?36:120}" fill="${dark?'#eaf1ff':'url(#gl)'}"/>`;
+    // дальний слой: тонкие светлые стволы и крона
+    for(let i=0;i<9;i++){ const x=R()*400; s+=`<rect x="${f(x)}" y="40" width="${f(5+R()*7)}" height="${H}" fill="${P.far}" opacity=".7"/>`; }
+    for(let i=0;i<8;i++) s+=blob(R()*420-10,60+R()*120,40+R()*30,P.far,.9);
+    // лучи света
+    if(!dark) for(let i=0;i<4;i++){ const x=30+R()*340; s+=`<polygon points="${f(x)},0 ${f(x+34)},0 ${f(x+120)},${H+60} ${f(x-40)},${H+60}" fill="#fffbe0" opacity=".16"/>`; }
+    // средний слой: стволы потолще, лианы, крона
+    for(let i=0;i<6;i++){ const x=10+R()*380, w=12+R()*14; s+=`<rect x="${f(x)}" y="0" width="${f(w)}" height="${H+20}" rx="5" fill="${P.trunk}" opacity=".85"/><rect x="${f(x)}" y="0" width="${f(w)}" height="${H+20}" fill="${P.mid}" opacity=".35"/>`; }
+    for(let i=0;i<7;i++) s+=blob(R()*420-10,R()*110,46+R()*34,P.mid);
+    for(let i=0;i<5;i++){ const x=R()*400, l=80+R()*140; s+=`<path d="M${f(x)} 0 q${f(R()*30-15)} ${f(l/2)} ${f(R()*20-10)} ${f(l)}" stroke="${P.leaf}" stroke-width="3" fill="none" opacity=".8"/>`; }
+    // дымка у горизонта и «земля»
+    s+=`<rect y="${H-110}" width="400" height="130" fill="url(#hz)"/><rect y="${H}" width="400" height="500" fill="${P.ground}"/>`;
+    // ближние большие стволы по краям
+    s+=`<rect x="-30" y="0" width="70" height="${H+30}" rx="10" fill="${P.near}"/><rect x="368" y="0" width="60" height="${H+30}" rx="10" fill="${P.near}"/>`;
+    if(dark) for(let i=0;i<14;i++){ const x=R()*400,y=120+R()*300,d=2+R()*3; s+=`<circle cx="${f(x)}" cy="${f(y)}" r="1.8" fill="#d8ff7a"><animate attributeName="opacity" values="0;1;0" dur="${f(d)}s" begin="${f(R()*3)}s" repeatCount="indefinite"/></circle>`; }
+  } else {
+    s+=`<circle cx="${dark?310:90}" cy="${dark?100:90}" r="${dark?34:120}" fill="${dark?'#eaf1ff':'url(#gl)'}"/>`;
+    for(let i=0;i<5;i++){ const x=R()*380, y=60+R()*170, w=50+R()*70; s+=`<g opacity="${dark?.13:.9}" fill="#fff"><ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(w)}" ry="${f(w*.2)}"/><ellipse cx="${f(x+w*.35)}" cy="${f(y-w*.13)}" rx="${f(w*.5)}" ry="${f(w*.22)}"/></g>`; }
+    // далёкий остров с пальмами и скалами
+    s+=`<path d="M0 ${H-8} Q60 ${H-44} 140 ${H-14} T270 ${H-26} T400 ${H-12} V${H+30} H0Z" fill="${P.far}"/>`;
+    for(let i=0;i<4;i++){ const x=40+R()*320; s+=`<path d="M${f(x)} ${H-14} q${f(R()*8-4)} -30 ${f(R()*6-3)} -46" stroke="${P.trunk}" stroke-width="3" fill="none"/>`+frond(x,H-60,-80,26,P.leaf,P.leaf2)+frond(x,H-60,-110,24,P.leaf,P.leaf2)+frond(x,H-60,-50,22,P.leaf,P.leaf2); }
+    s+=`<path d="M0 ${H+4} Q90 ${H-26} 200 ${H+2} T400 ${H-4} V${H+60} H0Z" fill="${P.mid}"/>`;
+    s+=`<rect y="${H-60}" width="400" height="90" fill="url(#hz)"/><rect y="${H+10}" width="400" height="500" fill="${P.ground}"/>`;
+  }
+  const fgc=P.leaf, fg2=P.leaf2;
+  let fg;
+  if(jungle) fg=frond(-20,800,-62,330,fgc,fg2)+frond(-10,640,-30,200,fgc,fg2)+frond(420,820,-122,320,fgc,fg2)+frond(410,690,-150,210,fgc,fg2)+frond(-30,-10,48,220,fgc,fg2)+frond(430,-10,128,200,fgc,fg2);
+  else    fg=frond(-30,-20,50,260,fgc,fg2)+frond(430,-20,130,250,fgc,fg2)+frond(-20,40,20,160,fgc,fg2)+frond(420,50,160,150,fgc,fg2);
+  const wrap=b=>`<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${b}</svg>`;
+  return {bg:wrap(s),fg:wrap(fg)};
 }
 
-/* ---- мягкая тень под зверем ---- */
 function shadowTex(){
   const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
   const g=x.createRadialGradient(32,32,2,32,32,32); g.addColorStop(0,'rgba(0,0,0,.5)'); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -797,70 +806,93 @@ function clearEnv(){
 }
 const mat=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.85,metalness:0},o||{}));
 
+/* деревянное ведёрко для кормления (как в оригинале) */
+function bucket(P,s){
+  const g=new THREE.Group(), wood=mat(curTheme()==='dark'?'#6b4a2c':'#b9823f',{roughness:.8}), dk=mat(curTheme()==='dark'?'#3d2a18':'#7a5028'), rope=mat('#d8c28a');
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(.5,.38,.62,18),wood).translateY(.31));
+  [.14,.46].forEach(y=>{ const b=new THREE.Mesh(new THREE.TorusGeometry(y<.3?.43:.49,.025,6,24),dk); b.rotation.x=Math.PI/2; b.position.y=y; g.add(b); });
+  for(let i=0;i<7;i++){ const a=i/7*Math.PI*2, p=new THREE.Mesh(new THREE.BoxGeometry(.012,.6,.05),dk); p.position.set(Math.cos(a)*.46,.31,Math.sin(a)*.46); p.rotation.y=-a; g.add(p); }
+  const top=new THREE.Mesh(new THREE.CircleGeometry(.47,18),mat('#3a2514')); top.rotation.x=-Math.PI/2; top.position.y=.6; g.add(top);
+  const h=new THREE.Mesh(new THREE.TorusGeometry(.45,.03,6,20,Math.PI),rope); h.position.y=.62; g.add(h);
+  g.scale.setScalar(s); return g;
+}
+
 /* ---- окружение в 3D: ветка / вода / земля ---- */
 function buildStage(){
   if(!scene||!stageA) return;
-  const env=envOf(stageA), P=SCN[curTheme()][env], R=rng(stageA.id*31+5);
-  $('#stageBg').innerHTML=backdrop(env,P);
+  const env=envOf(stageA), P=SCN[curTheme()][env], R=rng(stageA.id*31+5), dk=curTheme()==='dark';
+  const bd=backdrop(env,P); $('#stageBg').innerHTML=bd.bg; $('#stageFg').innerHTML=bd.fg;
   clearEnv(); envG=new THREE.Group(); scene.add(envG);
   hemi.color.setHex(P.hemi[0]); hemi.groundColor.setHex(P.hemi[1]); hemi.intensity=P.hemi[2];
   sun.color.setHex(P.sun[0]); sun.intensity=P.sun[1];
-  scene.fog = P.fog ? new THREE.Fog(new THREE.Color(P.fog),16,58) : null;
+  scene.fog=new THREE.Fog(new THREE.Color(P.fog),14,56);
 
-  /* размеры животного (без поворота) */
+  /* кит и выдра выныривают из воды: нос вверх */
+  animalObj.rotation.z = env==='water' ? (stageA.kind==='whale'?.3:.22) : 0;
   const ry=pivot.rotation.y; pivot.rotation.y=0; pivot.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(animalObj), sz=box.getSize(new THREE.Vector3());
   pivot.rotation.y=ry; pivot.updateMatrixWorld(true);
   const rad=Math.hypot(sz.x,sz.z)/2;
   fit={w:rad*2,h:sz.y,minY:box.min.y};
 
-  if(env==='branch'){
-    const bark=mat(P.trunk,{roughness:.95});
-    const br=new THREE.Mesh(new THREE.CylinderGeometry(.13,.17,18,14),bark);
-    br.rotation.x=Math.PI/2; br.position.set(0,box.min.y-.13,0); envG.add(br);
-    const leaf=mat(curTheme()==='dark'?'#2c7a46':'#3f9a52');
-    for(let i=0;i<9;i++){
-      const z=(R()<.5?-1:1)*(1.8+R()*5.5), l=new THREE.Mesh(new THREE.SphereGeometry(.5,12,9),leaf);
-      l.scale.set(.5+R()*.4,.12,.9+R()*.6); l.position.set((R()-.5)*.5,box.min.y-.02+R()*.15,z);
-      l.rotation.set(0,(R()-.5)*1.2,(R()-.5)*.5); envG.add(l);
-    }
-    const tw=new THREE.Mesh(new THREE.CylinderGeometry(.05,.08,3,8),bark);
-    tw.position.set(-.4,box.min.y+.7,-3.2); tw.rotation.set(.1,0,.5); envG.add(tw);
-    const tl=new THREE.Mesh(new THREE.SphereGeometry(.7,12,9),leaf); tl.scale.set(1,.5,1.1); tl.position.set(-1.0,box.min.y+1.8,-3.2); envG.add(tl);
-  } else {
-    /* земля до горизонта */
-    const gy = env==='water' ? box.min.y-(stageA.kind==='whale'?1.0:.04) : box.min.y;
-    const gnd=new THREE.Mesh(new THREE.CircleGeometry(70,56),mat(P.ground,{roughness:1}));
-    gnd.rotation.x=-Math.PI/2; gnd.position.y=gy; envG.add(gnd);
+  /* земля до горизонта (для птицы — лесная подстилка ниже ветки) */
+  let gy=box.min.y;
+  if(env==='branch') gy=box.min.y-1.7;
+  if(env==='water') gy=box.min.y-(stageA.kind==='whale'?.9:.05);
+  const gnd=new THREE.Mesh(new THREE.CircleGeometry(70,56),mat(P.ground,{roughness:1}));
+  gnd.rotation.x=-Math.PI/2; gnd.position.y=gy; envG.add(gnd);
 
-    if(env==='water'){
-      const wy=box.min.y+sz.y*.5;
-      const w=new THREE.Mesh(new THREE.CircleGeometry(18,64),mat(P.water,{transparent:true,opacity:.74,roughness:.2,depthWrite:false,fog:false,side:THREE.DoubleSide}));
-      w.rotation.x=-Math.PI/2; w.position.y=wy; w.renderOrder=2; envG.add(w);
-      [1.12,1.5,2.0].forEach((k,i)=>{
-        const r=new THREE.Mesh(new THREE.RingGeometry(rad*k,rad*k+.05,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5-.14*i,depthWrite:false,fog:false,side:THREE.DoubleSide}));
-        r.rotation.x=-Math.PI/2; r.position.y=wy+.01; r.renderOrder=3; envG.add(r);
-      });
-      const rocks=mat(P.near);
-      for(let i=0;i<3;i++){ const a=R()*Math.PI*2, d=9+R()*5, r=new THREE.Mesh(new THREE.DodecahedronGeometry(.4+R()*.4),rocks); r.position.set(Math.cos(a)*d,gy+.1,-Math.abs(Math.sin(a))*d); r.scale.y=.6; envG.add(r); }
-    } else {
-      /* пятно-тень */
+  if(env==='branch'){
+    const bark=mat(P.trunk,{roughness:.95}), leaf=mat(P.leaf2);
+    const br=new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,20,14),bark);
+    br.rotation.x=Math.PI/2; br.position.set(0,box.min.y-.14,0); envG.add(br);
+    // толстый ствол сзади, от которого идёт ветка, и листья на ветке
+    const tr=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,14,16),bark); tr.position.set(-.4,box.min.y+4,-7.5); envG.add(tr);
+    for(let i=0;i<11;i++){
+      const z=(R()<.5?-1:1)*(1.6+R()*6), l=new THREE.Mesh(new THREE.SphereGeometry(.5,12,9),leaf);
+      l.scale.set(.4+R()*.4,.1,.9+R()*.7); l.position.set((R()-.5)*.5,box.min.y-.04+R()*.2,z); l.rotation.set(0,(R()-.5)*1.2,(R()-.5)*.6); envG.add(l);
+    }
+    const tw=new THREE.Mesh(new THREE.CylinderGeometry(.05,.09,3.4,8),bark); tw.position.set(-.5,box.min.y+.8,-3.4); tw.rotation.set(.1,0,.55); envG.add(tw);
+    const tl=new THREE.Mesh(new THREE.SphereGeometry(.8,12,9),leaf); tl.scale.set(1.1,.5,1.2); tl.position.set(-1.2,box.min.y+1.9,-3.4); envG.add(tl);
+  }
+  if(env==='water'){
+    const wy=box.min.y+sz.y*.5;
+    const w=new THREE.Mesh(new THREE.CircleGeometry(18,64),mat(P.water,{transparent:true,opacity:.76,roughness:.2,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+    w.rotation.x=-Math.PI/2; w.position.y=wy; w.renderOrder=2; envG.add(w);
+    [1.1,1.45,1.9].forEach((k,i)=>{
+      const r=new THREE.Mesh(new THREE.RingGeometry(rad*k,rad*k+.06,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.55-.15*i,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+      r.rotation.x=-Math.PI/2; r.position.y=wy+.01; r.renderOrder=3; envG.add(r);
+    });
+    // брызги вокруг зверя
+    const drop=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,fog:false});
+    for(let i=0;i<14;i++){ const a=R()*Math.PI*2, d=rad*(.9+R()*.7); const m=new THREE.Mesh(new THREE.SphereGeometry(.05+R()*.05,8,6),drop); m.position.set(Math.cos(a)*d,wy+.1+R()*.5,Math.sin(a)*d); envG.add(m); }
+    // песчаная отмель с ведёрком
+    const bar=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.6,.5,28),mat(P.ground,{roughness:1}));
+    bar.position.set(-(rad+.7),wy-.1,2.4); envG.add(bar);
+    const b=bucket(P,.7); b.position.set(-(rad+.7),wy+.15,2.4); envG.add(b);
+    const rk=new THREE.Mesh(new THREE.DodecahedronGeometry(.6),mat(P.mid)); rk.scale.y=.7; rk.position.set(rad+2.6,wy,-2.2); envG.add(rk);
+  } else {
+    /* тень, трава, цветочки, камни, ведёрко */
+    if(env!=='branch'){
       const sh=new THREE.Mesh(new THREE.PlaneGeometry(rad*3,rad*3),new THREE.MeshBasicMaterial({map:shadowTex(),transparent:true,depthWrite:false,fog:false}));
       sh.rotation.x=-Math.PI/2; sh.position.y=gy+.01; sh.renderOrder=1; envG.add(sh);
-      const grass=mat(env==='forest'?(curTheme()==='dark'?'#2f7a45':'#3f8f45'):(curTheme()==='dark'?'#6a6038':'#b9a35e'));
-      const stone=mat(env==='forest'?P.near:(curTheme()==='dark'?'#4a463c':'#a89468'));
-      for(let i=0;i<46;i++){
-        const a=R()*Math.PI*2, d=rad*1.5+1+R()*9, x=Math.cos(a)*d, z=Math.sin(a)*d*.8;
-        if(z>2.6 && Math.abs(x)<2.2) continue;            // не закрываем зверя спереди
-        const t=new THREE.Mesh(new THREE.ConeGeometry(.07+R()*.05,.35+R()*.5,5),grass);
-        t.position.set(x,gy+.2,z); t.rotation.z=(R()-.5)*.5; envG.add(t);
-        if(env==='forest' && i%6===0){ const f=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),mat(['#ffd23f','#ff8fa3','#fff'][i%3])); f.position.set(x,gy+.5+R()*.2,z); envG.add(f); }
-      }
-      for(let i=0;i<5;i++){
-        const a=R()*Math.PI*2, d=rad*1.6+1.5+R()*7, x=Math.cos(a)*d, z=Math.sin(a)*d*.8; if(z>3 && Math.abs(x)<2.5) continue;
-        const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.25+R()*.35),stone); r.scale.y=.6; r.position.set(x,gy+.1,z); r.rotation.y=R()*3; envG.add(r);
-      }
     }
+    const sand=env==='sand';
+    const grass=mat(sand?(dk?'#6a6038':'#b9a35e'):(dk?'#2f7a45':'#3f9a4a'));
+    const stone=mat(sand?(dk?'#4a463c':'#a89468'):P.near);
+    for(let i=0;i<60;i++){
+      const a=R()*Math.PI*2, d=rad*1.4+1+R()*10, x=Math.cos(a)*d, z=Math.sin(a)*d*.8;
+      if(z>2.4 && Math.abs(x)<2.4) continue;
+      const t=new THREE.Mesh(new THREE.ConeGeometry(.07+R()*.05,.35+R()*.55,5),grass);
+      t.position.set(x,gy+.2,z); t.rotation.z=(R()-.5)*.5; envG.add(t);
+      if(!sand && i%7===0){ const fl=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),mat(['#ffd23f','#ff8fa3','#ffffff'][i%3])); fl.position.set(x,gy+.5+R()*.2,z); envG.add(fl); }
+    }
+    for(let i=0;i<6;i++){
+      const a=R()*Math.PI*2, d=rad*1.6+1.5+R()*8, x=Math.cos(a)*d, z=Math.sin(a)*d*.8; if(z>3 && Math.abs(x)<2.6) continue;
+      const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.25+R()*.4),stone); r.scale.y=.6; r.position.set(x,gy+.1,z); r.rotation.y=R()*3; envG.add(r);
+    }
+    const bs=Math.max(.7,Math.min(1,rad*.5));
+    const b=bucket(P,bs); b.position.set(-.95-rad*.15,gy,2.0+rad*.2); envG.add(b);
   }
   frame();
 }
@@ -978,7 +1010,7 @@ function openModal(a){
     `<span>${c.how==='earn'?ic('star','fill star')+'За звёзды':c.how==='code'?ic('gift')+'Открыта кодом':ic('scan')+'Найдена камерой'}</span>`;
   $('#mInfo').textContent=a.model?'':'Это временная 3D-фигурка — настоящая появится позже.';
   const hint=$('#mHint'); hint.classList.remove('off'); clearTimeout(openModal.h); openModal.h=setTimeout(()=>hint.classList.add('off'),4500);
-  $('#stageBg').innerHTML='';
+  $('#stageBg').innerHTML=''; $('#stageFg').innerHTML='';
   if(typeof THREE==='undefined'){ $('#view').innerHTML='<p class="noGL">3D не загрузилось — проверь интернет.</p>'; buildBackdropOnly(a); return; }
   try{ initThree(); }catch(e){ console.error(e); $('#view').innerHTML='<p class="noGL">Не удалось запустить 3D на этом устройстве.</p>'; buildBackdropOnly(a); return; }
   if(animalObj) pivot.remove(animalObj);
@@ -999,7 +1031,7 @@ function openModal(a){
   })(prev);
 }
 function buildBackdropOnly(a){
-  const env=envOf(a); $('#stageBg').innerHTML=backdrop(env,SCN[curTheme()][env]);
+  const env=envOf(a), bd=backdrop(env,SCN[curTheme()][env]); $('#stageBg').innerHTML=bd.bg; $('#stageFg').innerHTML=bd.fg;
 }
 function closeModal(){ $('#modal').classList.remove('on'); if(justNew){ const el=document.querySelector(`.card[data-k="${justNew}"]`); if(el){ el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); } justNew=null; } document.body.style.overflow=''; cancelAnimationFrame(raf); stageA=null; }
 $('#mClose').onclick=closeModal;
