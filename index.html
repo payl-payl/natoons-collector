@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f4a2f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Natoons">
 <title>Natoons — моя коллекция</title>
 <script>
 /* тема выбирается до первой отрисовки, чтобы страница не «мигала» */
@@ -67,6 +71,7 @@ header h1{margin:0;font-size:26px;font-weight:900;letter-spacing:-.02em;line-hei
 .pill .ic{width:22px;height:22px}
 .iconbtn{display:inline-grid;place-items:center;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:inherit;cursor:pointer;flex:none}
 .iconbtn:active{transform:scale(.94)}
+.iconbtn[hidden]{display:none}
 .years{position:relative;display:flex;gap:4px;margin:16px 0 14px;padding:4px;background:rgba(0,0,0,.22);border-radius:18px}
 .years button{flex:1;border:0;border-radius:14px;padding:8px 4px 7px;font-size:17px;font-weight:900;color:var(--hd-ink);background:none;cursor:pointer;line-height:1.1}
 .years button small{display:block;font-size:11px;font-weight:700;opacity:.8;margin-top:2px}
@@ -299,6 +304,8 @@ form.shake{animation:shake .45s}
  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
  <symbol id="i-paw" viewBox="0 0 24 24"><ellipse cx="12" cy="16.2" rx="4.7" ry="3.9"/><ellipse cx="5.6" cy="11.4" rx="1.9" ry="2.5"/><ellipse cx="9.5" cy="6.6" rx="1.9" ry="2.6"/><ellipse cx="14.5" cy="6.6" rx="1.9" ry="2.6"/><ellipse cx="18.4" cy="11.4" rx="1.9" ry="2.5"/></symbol>
+ <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+ <symbol id="i-shrink" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" stroke-linejoin="round"/></symbol>
@@ -330,6 +337,7 @@ form.shake{animation:shake .45s}
       <h1>Natoons</h1>
     </div>
     <div class="pill" id="stars" title="Звёзды"></div>
+    <button class="iconbtn" id="fsBtn" aria-label="Полный экран" hidden></button>
     <button class="iconbtn" id="themeBtn" aria-label="Сменить тему"></button>
   </div>
   <div class="years" id="years"></div>
@@ -730,8 +738,8 @@ function envOf(a){
 /* цвета сцены: светлая и тёмная (вечерняя) тема */
 const SCN={
   light:{
-    forest:{sky:['#8fd3dc','#d9efc4'],far:'#8fc6a0',mid:'#4f9b64',near:'#1f6a3c',trunk:'#5b4630',ground:'#4f9a45',fog:'#a9d3a0',leaf:'#1a6b36',leaf2:'#2f9a4c',hemi:[0xffffff,0x8fc080,1.05],sun:[0xfff1c9,.95]},
-    water:{sky:['#7cc8ee','#fbf0cf'],far:'#e6d49c',mid:'#d4bb7c',near:'#2c7d4c',trunk:'#7a5a38',ground:'#e4cf90',fog:'#efe2b6',water:'#37b4d0',leaf:'#1a6b36',leaf2:'#38a85a',hemi:[0xffffff,0xe0cf9a,1.05],sun:[0xfff1c9,1]}
+    forest:{sky:['#7fd0ee','#e8f6c8'],far:'#a9d9b2',mid:'#69b97c',near:'#3b8f52',trunk:'#8a6a44',ground:'#69b852',fog:'#c2e6b0',leaf:'#2a8c45',leaf2:'#4fbf68',hemi:[0xffffff,0xa8d490,1.3],sun:[0xfff6d8,1.15]},
+    water:{sky:['#6cc3f0','#fff3d2'],far:'#eedba4',mid:'#dcc386',near:'#3b9a5a',trunk:'#8a6a44',ground:'#ecd89a',fog:'#f4e8c0',water:'#35c0dc',leaf:'#2a8c45',leaf2:'#4fbf68',hemi:[0xffffff,0xe8d8a8,1.3],sun:[0xfff6d8,1.15]}
   },
   dark:{
     forest:{sky:['#06152a','#17372f'],far:'#17402f',mid:'#0f2c20',near:'#07170f',trunk:'#1d1710',ground:'#1b4429',fog:'#143427',leaf:'#0a2a18',leaf2:'#14452a',hemi:[0x9fb8d8,0x1a3a28,.85],sun:[0xaec8ff,.6]},
@@ -752,7 +760,7 @@ function frond(x,y,rot,len,col,col2){
   return s+'</g>';
 }
 function backdrop(env,P){
-  const R=rng(11+env.length*17), f=n=>n.toFixed(1), dark=curTheme()==='dark';
+  const R=rng(11+env.length*17), f=n=>n.toFixed(1), dark=false;
   const jungle=(env==='forest'||env==='branch');
   const H=320;                                           // линия горизонта
   let s=`<defs>
@@ -808,7 +816,7 @@ const mat=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness
 
 /* деревянное ведёрко для кормления (как в оригинале) */
 function bucket(P,s){
-  const g=new THREE.Group(), wood=mat(curTheme()==='dark'?'#6b4a2c':'#b9823f',{roughness:.8}), dk=mat(curTheme()==='dark'?'#3d2a18':'#7a5028'), rope=mat('#d8c28a');
+  const g=new THREE.Group(), wood=mat(false?'#6b4a2c':'#b9823f',{roughness:.8}), dk=mat(false?'#3d2a18':'#7a5028'), rope=mat('#d8c28a');
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(.5,.38,.62,18),wood).translateY(.31));
   [.14,.46].forEach(y=>{ const b=new THREE.Mesh(new THREE.TorusGeometry(y<.3?.43:.49,.025,6,24),dk); b.rotation.x=Math.PI/2; b.position.y=y; g.add(b); });
   for(let i=0;i<7;i++){ const a=i/7*Math.PI*2, p=new THREE.Mesh(new THREE.BoxGeometry(.012,.6,.05),dk); p.position.set(Math.cos(a)*.46,.31,Math.sin(a)*.46); p.rotation.y=-a; g.add(p); }
@@ -820,7 +828,7 @@ function bucket(P,s){
 /* ---- окружение в 3D: ветка / вода / земля ---- */
 function buildStage(){
   if(!scene||!stageA) return;
-  const env=envOf(stageA), P=SCN[curTheme()][env], R=rng(stageA.id*31+5), dk=curTheme()==='dark';
+  const env=envOf(stageA), P=SCN['light'][env], R=rng(stageA.id*31+5), dk=false;
   const bd=backdrop(env,P); $('#stageBg').innerHTML=bd.bg; $('#stageFg').innerHTML=bd.fg;
   clearEnv(); envG=new THREE.Group(); scene.add(envG);
   hemi.color.setHex(P.hemi[0]); hemi.groundColor.setHex(P.hemi[1]); hemi.intensity=P.hemi[2];
@@ -844,16 +852,16 @@ function buildStage(){
 
   if(env==='branch'){
     const bark=mat(P.trunk,{roughness:.95}), leaf=mat(P.leaf2);
-    const br=new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,20,14),bark);
-    br.rotation.x=Math.PI/2; br.position.set(0,box.min.y-.14,0); envG.add(br);
+    const br=new THREE.Mesh(new THREE.CylinderGeometry(.2,.26,20,16),bark);
+    br.rotation.z=Math.PI/2; br.position.set(2.5,box.min.y-.2,0); envG.add(br);   // ветка идёт поперёк взгляда камеры
     // толстый ствол сзади, от которого идёт ветка, и листья на ветке
-    const tr=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,14,16),bark); tr.position.set(-.4,box.min.y+4,-7.5); envG.add(tr);
+    const tr=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.15,16,16),bark); tr.position.set(-7.4,box.min.y+4,-.3); envG.add(tr);
     for(let i=0;i<11;i++){
-      const z=(R()<.5?-1:1)*(1.6+R()*6), l=new THREE.Mesh(new THREE.SphereGeometry(.5,12,9),leaf);
-      l.scale.set(.4+R()*.4,.1,.9+R()*.7); l.position.set((R()-.5)*.5,box.min.y-.04+R()*.2,z); l.rotation.set(0,(R()-.5)*1.2,(R()-.5)*.6); envG.add(l);
+      const x=(R()<.45?-1:1)*(1.8+R()*6), l=new THREE.Mesh(new THREE.SphereGeometry(.5,12,9),leaf);
+      l.scale.set(.9+R()*.7,.1,.4+R()*.4); l.position.set(x,box.min.y-.02+R()*.2,(R()-.5)*.5); l.rotation.set((R()-.5)*.6,(R()-.5)*1.2,0); envG.add(l);
     }
-    const tw=new THREE.Mesh(new THREE.CylinderGeometry(.05,.09,3.4,8),bark); tw.position.set(-.5,box.min.y+.8,-3.4); tw.rotation.set(.1,0,.55); envG.add(tw);
-    const tl=new THREE.Mesh(new THREE.SphereGeometry(.8,12,9),leaf); tl.scale.set(1.1,.5,1.2); tl.position.set(-1.2,box.min.y+1.9,-3.4); envG.add(tl);
+    const tw=new THREE.Mesh(new THREE.CylinderGeometry(.05,.09,3.2,8),bark); tw.position.set(3.6,box.min.y+1.4,-.1); tw.rotation.set(0,0,-.45); envG.add(tw);
+    const tl=new THREE.Mesh(new THREE.SphereGeometry(.8,12,9),leaf); tl.scale.set(1.3,.55,1); tl.position.set(4.5,box.min.y+2.8,-.1); envG.add(tl);
   }
   if(env==='water'){
     const wy=box.min.y+sz.y*.5;
@@ -949,7 +957,7 @@ function buildModel(a){
     eyes(w,.78,1.4,.2);
     [-1,1].forEach(s=>w.add(M(SPH,a.c2,[-.1,.95,.55*s],[.9,.15,.7],[s*.4,0,0])));
     w.add(M(CONE,a.c2,[-.8,.6,0],[.3,.9,.12],[0,0,Math.PI/2.4]));
-    [-1,1].forEach(s=>w.add(M(CYL,'#444',[0,.25,.1*s],[.06,.5,.06])));
+    [-1,1].forEach(s=>w.add(M(CYL,'#444',[.12*s,.25,0],[.06,.5,.06])));
   } else if(a.kind==='turtle'){
     w.add(M(SPH,a.c2,[0,.45,0],[1.7,.5,1.2]));
     w.add(M(new THREE.SphereGeometry(.5,24,12,0,Math.PI*2,0,Math.PI/2),a.c1,[0,.5,0],[1.8,1.2,1.4]));
@@ -1031,7 +1039,7 @@ function openModal(a){
   })(prev);
 }
 function buildBackdropOnly(a){
-  const env=envOf(a), bd=backdrop(env,SCN[curTheme()][env]); $('#stageBg').innerHTML=bd.bg; $('#stageFg').innerHTML=bd.fg;
+  const env=envOf(a), bd=backdrop(env,SCN.light[env]); $('#stageBg').innerHTML=bd.bg; $('#stageFg').innerHTML=bd.fg;
 }
 function closeModal(){ $('#modal').classList.remove('on'); if(justNew){ const el=document.querySelector(`.card[data-k="${justNew}"]`); if(el){ el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); } justNew=null; } document.body.style.overflow=''; cancelAnimationFrame(raf); stageA=null; }
 $('#mClose').onclick=closeModal;
@@ -1385,6 +1393,29 @@ $('#codeForm').onsubmit=e=>{
     const nx=cur+(dx<0?1:-1); if(nx<0||nx>=order.length) return;
     document.querySelector(`nav button[data-t=${order[nx]}]`).click();
   },{passive:true});
+})();
+
+/* ===== Полный экран ===== */
+(function(){
+  /* манифест «на лету»: если добавить сайт на главный экран, он откроется без адресной строки */
+  try{
+    const icon='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#1d8a4b"/><g fill="#fff"><ellipse cx="32" cy="40" rx="11" ry="9"/><ellipse cx="17" cy="29" rx="5" ry="6.5"/><ellipse cx="26" cy="17" rx="5" ry="6.5"/><ellipse cx="38" cy="17" rx="5" ry="6.5"/><ellipse cx="47" cy="29" rx="5" ry="6.5"/></g></svg>');
+    const man={name:'Natoons — моя коллекция',short_name:'Natoons',start_url:location.href.split('#')[0],display:'fullscreen',orientation:'portrait',background_color:'#0d4a2d',theme_color:'#0d4a2d',icons:[{src:icon,sizes:'any',type:'image/svg+xml',purpose:'any'}]};
+    const l=document.createElement('link'); l.rel='manifest'; l.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'})); document.head.appendChild(l);
+  }catch(e){}
+  const de=document.documentElement, can=!!(de.requestFullscreen||de.webkitRequestFullscreen), btn=$('#fsBtn');
+  const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  const enter=()=>{ try{ const p=(de.requestFullscreen||de.webkitRequestFullscreen).call(de,{navigationUI:'hide'}); if(p&&p.catch) p.catch(()=>{}); }catch(e){} };
+  const exit=()=>{ try{ (document.exitFullscreen||document.webkitExitFullscreen).call(document); }catch(e){} };
+  const paint=()=>{ btn.innerHTML=ic(isFs()?'shrink':'expand'); btn.setAttribute('aria-label',isFs()?'Выйти из полного экрана':'Полный экран'); };
+  if(!can) return;                     // например iPhone: там помогает «На экран Домой»
+  btn.hidden=false; paint();
+  btn.onclick=()=>isFs()?exit():enter();
+  document.addEventListener('fullscreenchange',paint); document.addEventListener('webkitfullscreenchange',paint);
+  /* браузеры разрешают полный экран только после касания — включаем при первом */
+  let tried=false;
+  const first=()=>{ if(tried) return; tried=true; if(!isFs() && !matchMedia('(display-mode: fullscreen)').matches) enter(); removeEventListener('pointerup',first,true); };
+  addEventListener('pointerup',first,true);
 })();
 
 setCamBtn(false); applyTheme(curTheme());
